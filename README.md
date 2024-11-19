@@ -65,60 +65,78 @@ Script Explanation
 
 Below is the RelativePriceStrength.afl script included in this repository:
 
-// User-configurable parameters
-period1 = Param("1-Month Time Frame", 22, 1, 252, 1);
-period3 = Param("3-Month Time Frame", 66, 1, 252, 1);
-period6 = Param("6-Month Time Frame", 132, 1, 252, 1);
-topPercent = Param("Top % to Show", 5, 1, 100, 1);
-combinePeriods = ParamToggle("Combined 1+3+6 Scan", "No|Yes", 0);
+// User Parameters
+TimeFrame1 = ParamList("Select Time Frame", "1m|3m|6m|1+3+6m", 0);
+TopPercent = Param("Top Percentage (%)", 5, 1, 100, 1);
 
-// Calculate relative price strength
-RPS1 = C / Ref(C, -period1);
-RPS3 = C / Ref(C, -period3);
-RPS6 = C / Ref(C, -period6);
-
-// Percentage gain calculations
-Gain1 = 100 * (C - Ref(C, -period1)) / Ref(C, -period1);
-Gain3 = 100 * (C - Ref(C, -period3)) / Ref(C, -period3);
-Gain6 = 100 * (C - Ref(C, -period6)) / Ref(C, -period6);
-
-// Combined score calculation for 1+3+6 months
-CombinedScore = 2 * RPS1 + RPS3 + RPS6;
-
-// Filtering and Ranking Logic
-Filter = 1;
-if (combinePeriods)
+// Function to get closing price N months ago
+Function GetCloseMonthsAgo(N)
 {
-    RankCombined = 100 * CombinedScore / Highest(CombinedScore);
-    Filter = RankCombined > (100 - topPercent);
-    AddColumn(CombinedScore, "Combined Score", 1.2);
-}
-else
-{
-    timeFrame = ParamList("Select Time Frame", "1 Month|3 Months|6 Months", 0);
-    if (timeFrame == "1 Month") { RankRPS = 100 * RPS1 / Highest(RPS1); }
-    else if (timeFrame == "3 Months") { RankRPS = 100 * RPS3 / Highest(RPS3); }
-    else if (timeFrame == "6 Months") { RankRPS = 100 * RPS6 / Highest(RPS6); }
-    Filter = RankRPS > (100 - topPercent);
+    BarsAgo = N * 21; // Assuming ~21 trading days per month
+    return IIf(BarsAgo <= BarCount, Ref(Close, BarsAgo), Null);
 }
 
-// Find the most recent bar in the dataset
-RecentBar = BarIndex() == LastValue(BarIndex());
-RecentDate = DateNum() * RecentBar;
+// Initialize variables
+RelativeStrength = 1;
+Gain1 = 0;
+Gain3 = 0;
+Gain6 = 0;
+Score = 0;
 
-// Apply the filter for the most recent date
-Filter = Filter AND RecentBar;
+// Calculate relative strength based on selected time frame
+if (TimeFrame1 == "1m")
+{
+    PastClose1 = Nz(GetCloseMonthsAgo(1), 1);
+    RelativeStrength = Close / PastClose1;
+    Gain1 = (RelativeStrength - 1) * 100;
+}
+else if (TimeFrame1 == "3m")
+{
+    PastClose3 = Nz(GetCloseMonthsAgo(3), 1);
+    RelativeStrength = Close / PastClose3;
+    Gain3 = (RelativeStrength - 1) * 100;
+}
+else if (TimeFrame1 == "6m")
+{
+    PastClose6 = Nz(GetCloseMonthsAgo(6), 1);
+    RelativeStrength = Close / PastClose6;
+    Gain6 = (RelativeStrength - 1) * 100;
+}
+else if (TimeFrame1 == "1+3+6m")
+{
+    RS1 = Close / Nz(GetCloseMonthsAgo(1), 1);
+    RS3 = Close / Nz(GetCloseMonthsAgo(3), 1);
+    RS6 = Close / Nz(GetCloseMonthsAgo(6), 1);
+    Score = 2 * RS1 + RS3 + RS6;
+    Gain1 = (RS1 - 1) * 100;
+    Gain3 = (RS3 - 1) * 100;
+    Gain6 = (RS6 - 1) * 100;
+    RelativeStrength = Score; // Use Score for ranking in combined mode
+}
 
-// Exploration Output
-AddColumn(Gain1, "% Gain 1 Month", 1.2);
-AddColumn(Gain3, "% Gain 3 Months", 1.2);
-AddColumn(Gain6, "% Gain 6 Months", 1.2);
-AddColumn(IIf(combinePeriods, CombinedScore, RPS1), "Relative Price Strength", 1.2);
+// Add Columns to Display
+AddColumn(Close, "Current Close", 1.2);
+AddColumn(RelativeStrength, "Relative Strength", 1.2);
 
-// Sector, Industry, and Shares Outstanding
-AddTextColumn(SectorID(Mode=1), "Sector Name", 1.2, colorDefault, colorDefault, 90);
-AddTextColumn(IndustryID(Mode=1), "Industry Name", 1.2, colorDefault, colorDefault, 90);
-AddColumn(GetFnData("SharesOut"), "Shares Outstanding", 1.2);
+if (TimeFrame1 == "1m")
+    AddColumn(Gain1, "% Gain 1m", 1.2);
+
+if (TimeFrame1 == "3m")
+    AddColumn(Gain3, "% Gain 3m", 1.2);
+
+if (TimeFrame1 == "6m")
+    AddColumn(Gain6, "% Gain 6m", 1.2);
+
+if (TimeFrame1 == "1+3+6m")
+{
+    AddColumn(Gain1, "% Gain 1m", 1.2);
+    AddColumn(Gain3, "% Gain 3m", 1.2);
+    AddColumn(Gain6, "% Gain 6m", 1.2);
+    AddColumn(Score, "Combined Score", 1.2);
+}
+
+// Set Title
+Title = "Relative Strength Exploration - " + TimeFrame1 + " - Top " + NumToStr(TopPercent, 0) + "%";
 
 // Title
 if (combinePeriods)

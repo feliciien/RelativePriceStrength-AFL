@@ -1,171 +1,83 @@
 
-Relative Price Strength (RPS) - Amibroker AFL Script
 
-An Amibroker Formula Language (AFL) script for calculating and ranking stocks based on Relative Price Strength (RPS) over customizable time frames. This script is designed for traders and analysts to identify top-performing stocks. It integrates seamlessly with Norgate data to provide sector, industry, and shares outstanding information.
+Relative Price Strength Exploration Script for Amibroker
+
+This repository contains a fully customizable Relative Price Strength Exploration Script for Amibroker, designed to identify and rank the top-performing stocks based on relative price strength over customizable time frames.
 
 Features
 
-	•	Relative Price Strength (RPS):
-	•	Calculates RPS for 1, 3, and 6-month time frames.
-	•	Allows combined ranking for 1+3+6 months with a weighted score.
-	•	Filtering and Ranking:
-	•	Filters and ranks stocks by the top X% based on RPS or combined score.
-	•	Customizable Parameters:
-	•	Dynamic configuration for time frames, top percentage of stocks, and ranking mode (individual or combined).
-	•	Output Information:
-	•	Percentage gain for 1, 3, and 6 months.
-	•	Sector, industry, and shares outstanding for each stock.
-	•	Results for the most recent trading day only.
+	•	Relative Strength Calculation: Ranks stocks by their relative strength over user-defined time frames (1 month, 3 months, 6 months, or a combined score).
+	•	Top Percentile Filtering: Dynamically filters and displays the top X% of stocks (default: 5%).
+	•	Comprehensive Data Display:
+	•	Relative Strength scores.
+	•	Percentage gains for 1-month, 3-month, and 6-month periods.
+	•	Stock Sector, Industry, and Shares Outstanding (requires Norgate data).
+	•	Single Row Per Stock: Ensures only the most recent data for each stock is displayed.
+	•	Customizable Parameters: Modify time frames and top percentile filtering directly from Amibroker’s parameter interface.
 
-Requirements
+Installation
 
-	1.	Amibroker:
-	•	Amibroker software installed on your system.
-	2.	Norgate Data:
-	•	Norgate data must be linked with Amibroker to access sector, industry, and shares outstanding fields.
-	3.	AFL Script:
-	•	The script file RelativePriceStrength.afl included in this repository.
+Prerequisites
 
-Setup Instructions
+	1.	Amibroker: Ensure you have Amibroker installed.
+	2.	Norgate Data Subscription: Required for fields like Sector, Industry, and Shares Outstanding.
 
-	1.	Clone this Repository:
+Steps
 
+	1.	Download or copy the RelativePriceStrength.afl script from this repository.
+	2.	Open Amibroker and go to Formula Editor (Ctrl + E).
+	3.	Paste the script into the editor.
+	4.	Save the script in your Amibroker formulas directory (e.g., Formulas\Custom) as RelativePriceStrength.afl.
 
+Usage
 
-	2.	Copy the Script:
-	•	Save the RelativePriceStrength.afl file to your Amibroker Formulas/Custom directory:
+Running the Exploration
 
-C:\Program Files\Amibroker\Formulas\Custom\
+	1.	Open Amibroker and go to Analysis > New Analysis.
+	2.	Select the RelativePriceStrength.afl script from the formula list.
+	3.	Configure the following parameters in the Analysis window:
+	•	Time Frame: Choose from 1 Month, 3 Months, 6 Months, or Combined.
+	•	Top Percentile: Specify the percentage of top stocks to display (default: 5%).
+	4.	Click Explore to run the script.
 
+Results
 
-	3.	Open Amibroker:
-	•	Launch Amibroker and select your database (e.g., Norgate).
-	4.	Load the Script:
-	•	Go to Analysis > New Analysis.
-	•	Select RelativePriceStrength.afl from the dropdown menu.
-
-Usage Instructions
-
-	1.	Configure Parameters:
-	•	Open the Parameters window in Amibroker.
-	•	Adjust the following settings:
-	•	Time Frames: 1-Month, 3-Month, 6-Month.
-	•	Top Percentage: Customize the top percentage of stocks to display (default: 5%).
-	•	Combined Mode: Toggle between individual or combined 1+3+6-month ranking.
-	2.	Run the Exploration:
-	•	In the Analysis window, click Explore.
-	•	Ensure the date range is set to All Quotes or your desired range.
-	3.	Review the Results:
-	•	The output includes:
-	•	% Gain 1 Month, % Gain 3 Months, % Gain 6 Months.
-	•	Relative Price Strength or Combined Score.
+The exploration will display:
+	•	Top X% of Stocks: Based on relative strength or combined score.
+	•	Columns Displayed:
+	•	Relative Strength.
+	•	% Gain for 1M, 3M, and 6M periods.
 	•	Sector, Industry, and Shares Outstanding.
 
-Script Explanation
+Parameters
 
-Below is the RelativePriceStrength.afl script included in this repository:
+Parameter	Description	Default Value
+Time Frame	Select the time frame for relative strength calculation (1 Month, 3 Months, 6 Months, Combined).	Combined
+Top Percentile	Define the percentage of top-performing stocks to display.	5%
 
-// User Parameters
-TimeFrame1 = ParamList("Select Time Frame", "1m|3m|6m|1+3+6m", 0);
-TopPercent = Param("Top Percentage (%)", 5, 1, 100, 1);
+Example Output
 
-// Function to get closing price N months ago
-Function GetCloseMonthsAgo(N)
-{
-    BarsAgo = N * 21; // Assuming ~21 trading days per month
-    return IIf(BarsAgo <= BarCount, Ref(Close, BarsAgo), Null);
-}
-
-// Initialize variables
-RelativeStrength = 1;
-Gain1 = 0;
-Gain3 = 0;
-Gain6 = 0;
-Score = 0;
-
-// Calculate relative strength based on selected time frame
-if (TimeFrame1 == "1m")
-{
-    PastClose1 = Nz(GetCloseMonthsAgo(1), 1);
-    RelativeStrength = Close / PastClose1;
-    Gain1 = (RelativeStrength - 1) * 100;
-}
-else if (TimeFrame1 == "3m")
-{
-    PastClose3 = Nz(GetCloseMonthsAgo(3), 1);
-    RelativeStrength = Close / PastClose3;
-    Gain3 = (RelativeStrength - 1) * 100;
-}
-else if (TimeFrame1 == "6m")
-{
-    PastClose6 = Nz(GetCloseMonthsAgo(6), 1);
-    RelativeStrength = Close / PastClose6;
-    Gain6 = (RelativeStrength - 1) * 100;
-}
-else if (TimeFrame1 == "1+3+6m")
-{
-    RS1 = Close / Nz(GetCloseMonthsAgo(1), 1);
-    RS3 = Close / Nz(GetCloseMonthsAgo(3), 1);
-    RS6 = Close / Nz(GetCloseMonthsAgo(6), 1);
-    Score = 2 * RS1 + RS3 + RS6;
-    Gain1 = (RS1 - 1) * 100;
-    Gain3 = (RS3 - 1) * 100;
-    Gain6 = (RS6 - 1) * 100;
-    RelativeStrength = Score; // Use Score for ranking in combined mode
-}
-
-// Add Columns to Display
-AddColumn(Close, "Current Close", 1.2);
-AddColumn(RelativeStrength, "Relative Strength", 1.2);
-
-if (TimeFrame1 == "1m")
-    AddColumn(Gain1, "% Gain 1m", 1.2);
-
-if (TimeFrame1 == "3m")
-    AddColumn(Gain3, "% Gain 3m", 1.2);
-
-if (TimeFrame1 == "6m")
-    AddColumn(Gain6, "% Gain 6m", 1.2);
-
-if (TimeFrame1 == "1+3+6m")
-{
-    AddColumn(Gain1, "% Gain 1m", 1.2);
-    AddColumn(Gain3, "% Gain 3m", 1.2);
-    AddColumn(Gain6, "% Gain 6m", 1.2);
-    AddColumn(Score, "Combined Score", 1.2);
-}
-
-// Set Title
-Title = "Relative Strength Exploration - " + TimeFrame1 + " - Top " + NumToStr(TopPercent, 0) + "%";
-
-// Title
-if (combinePeriods)
-    Title = "Top " + topPercent + "% Stocks by Combined 1+3+6 Month Score";
-else
-    Title = "Top " + topPercent + "% Stocks by " + timeFrame + " Relative Price Strength";
+Ticker	Date/Time	Relative Strength	% Gain 1M	% Gain 3M	% Gain 6M	Sector	Industry	Shares Outstanding
+MSFT	16/11/2018	4.12	0.97%	1.01%	1.11%	Technology	Software	7,986,999,808
+AAPL	16/11/2018	3.72	-10.41%	0.90%	1.03%	Technology	Computers	5,575,000,064
 
 Troubleshooting
 
-Common Issues
+No Results Returned
 
-	1.	No Results Displayed:
-	•	Ensure valid Norgate data is loaded for all symbols.
-	•	Check parameter settings (e.g., top percentage, time frame).
-	2.	Missing Sector or Industry Data:
-	•	Confirm that Norgate data provides SectorID, IndustryID, and SharesOut fields.
-	3.	Warnings About LastValue():
-	•	The script resolves this by using BarIndex() to fetch the most recent bar without “future-looking.”
+	•	Ensure your watchlist contains symbols with sufficient historical data (e.g., at least 6 months).
+	•	Verify that your Norgate data is configured correctly and includes fields like Sector, Industry, and Shares Outstanding.
 
-Contribution
+Amibroker Crash
 
-Contributions are welcome! Feel free to open issues or submit pull requests for improvements.
+	•	Reduce the size of your watchlist or ensure sufficient system memory is available.
+	•	If necessary, run the script with smaller symbol sets and gradually increase.
+
+Acknowledgments
+
+This script uses Amibroker’s AFL scripting language and integrates with Norgate data to provide robust exploration capabilities. Special thanks to Norgate Data for their excellent database integration.
 
 License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
-
-How to Export Results
-
-	1.	After running the exploration, view the results in the Result List.
-	2.	Click the Export button to save the results as a .csv file for external analysis.
 

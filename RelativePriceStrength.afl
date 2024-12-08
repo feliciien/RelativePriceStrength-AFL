@@ -1,45 +1,49 @@
-// --------------------------------------------------------------------
-// Relative Price Strength Exploration Script - Refined
-// --------------------------------------------------------------------
+// ---------------------------------------------------
+// Relative Price Strength Exploration Script - Final
+// Compatible with Amibroker 32-bit (Version 6.20.1)
+// ---------------------------------------------------
 
 // User-customizable parameters
 TimeFrameOption = ParamList("Time Frame", "1 Month|3 Months|6 Months|Combined 1+3+6 Months", 3); // Default to Combined
-TopPercentile = Param("Top Percentile", 5, 1, 100, 1);
+TopPercentile = Param("Top Percentile", 5, 1, 100, 1); // Default: Top 5%
 
 // Define the number of trading days per month (approximation)
 daysInMonth = 21;
 
 // Calculate the required lookback periods in days
-lookback1M = daysInMonth;
+lookback1M = 1 * daysInMonth;
 lookback3M = 3 * daysInMonth;
 lookback6M = 6 * daysInMonth;
 
-// Calculate relative strengths
-RelStrength1M = Close / Ref(Close, -lookback1M);
-RelStrength3M = Close / Ref(Close, -lookback3M);
-RelStrength6M = Close / Ref(Close, -lookback6M);
+// Ensure sufficient historical data availability
+HasData = Ref(Close, -lookback1M) > 0 AND Ref(Close, -lookback3M) > 0 AND Ref(Close, -lookback6M) > 0;
 
-// Skip symbols with missing data
-Filter = IsNull(Close) == 0 AND IsNull(Ref(Close, -lookback1M)) == 0 AND
-         IsNull(Ref(Close, -lookback3M)) == 0 AND IsNull(Ref(Close, -lookback6M)) == 0;
+// Calculate relative strengths
+RelStrength1M = IIf(HasData, Close / Ref(Close, -lookback1M), 0);
+RelStrength3M = IIf(HasData, Close / Ref(Close, -lookback3M), 0);
+RelStrength6M = IIf(HasData, Close / Ref(Close, -lookback6M), 0);
 
 // Calculate combined score
 Score = 2 * RelStrength1M + RelStrength3M + RelStrength6M;
 
 // Select metric based on time frame option
 SelectedMetric = IIf(TimeFrameOption == "1 Month", RelStrength1M,
-               IIf(TimeFrameOption == "3 Months", RelStrength3M,
-               IIf(TimeFrameOption == "6 Months", RelStrength6M,
-               Score)));
+                IIf(TimeFrameOption == "3 Months", RelStrength3M,
+                IIf(TimeFrameOption == "6 Months", RelStrength6M,
+                Score)));
 
-// Apply PercentRank to filter top X%
-MetricRank = PercentRank(SelectedMetric, SelectedMetric);
+// Filter for valid stocks
+Filter = HasData AND SelectedMetric > 0;
+
+// Calculate PercentRank
+MetricRank = PercentRank(SelectedMetric, 1); // Corrected function
 Filter = Filter AND MetricRank >= (100 - TopPercentile);
 
 // Ensure only the latest data for each stock is displayed
-Filter = Filter AND BarIndex() == LastValue(BarIndex());
+LatestBar = LastValue(BarIndex());
+Filter = Filter AND BarIndex() == LatestBar;
 
-// Get sector and industry names
+// Get sector and industry names (only if available)
 SectorName = SectorID(1); // Mode=1 for Sector Name
 IndustryName = IndustryID(1); // Mode=1 for Industry Name
 
@@ -52,9 +56,15 @@ AddColumn(SelectedMetric, "Relative Strength", 1.2);
 AddColumn(RelStrength1M, "1M RelStrength", 1.2);
 AddColumn(RelStrength3M, "3M RelStrength", 1.2);
 AddColumn(RelStrength6M, "6M RelStrength", 1.2);
-AddTextColumn(SectorName, "Sector", 1.2);
-AddTextColumn(IndustryName, "Industry", 1.2);
+AddTextColumn(SectorName, "Sector");
+AddTextColumn(IndustryName, "Industry");
 AddColumn(SharesOutstanding, "Shares Outstanding", 1.0);
+
+// Debugging: Show Close and historical data for reference
+AddColumn(Close, "Close", 1.2);
+AddColumn(Ref(Close, -lookback1M), "1 Month Ago", 1.2);
+AddColumn(Ref(Close, -lookback3M), "3 Months Ago", 1.2);
+AddColumn(Ref(Close, -lookback6M), "6 Months Ago", 1.2);
 
 // Set sort order based on SelectedMetric descending
 SetSortColumns(-1); // Higher relative strength ranks higher
